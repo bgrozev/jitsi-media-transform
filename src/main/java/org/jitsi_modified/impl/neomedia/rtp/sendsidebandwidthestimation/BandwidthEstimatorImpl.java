@@ -93,18 +93,20 @@ public class BandwidthEstimatorImpl
             = new SendSideBandwidthEstimation(diagnosticContext, START_BITRATE_BPS);
         sendSideBandwidthEstimation.setMinMaxBitrate(
                 MIN_BITRATE_BPS, MAX_BITRATE_BPS);
+        this.diagnosticContext = diagnosticContext;
     }
+    private DiagnosticContext diagnosticContext;
 
-    public void rtcpReportBlocksReceived(Collection<RtcpReportBlock> reportBlocks)
+    private void rtcpReportBlocksReceived(Collection<RtcpReportBlock> reportBlocks, String l)
     {
         long total_number_of_packets = 0;
         long fraction_lost_aggregate = 0;
         for (RtcpReportBlock reportBlock : reportBlocks)
         {
-            Long ssrc = reportBlock.getSsrc();
-            Long extSeqNum = reportBlock.getExtendedHighestSeqNum();
-            Long lastEHSN = ssrc_to_last_received_extended_high_seq_num_.getOrDefault(ssrc, extSeqNum);
-            ssrc_to_last_received_extended_high_seq_num_.put(ssrc, lastEHSN);
+            long ssrc = reportBlock.getSsrc();
+            long extSeqNum = reportBlock.getExtendedHighestSeqNum();
+            long lastEHSN = ssrc_to_last_received_extended_high_seq_num_.getOrDefault(ssrc, extSeqNum);
+            ssrc_to_last_received_extended_high_seq_num_.put(ssrc, extSeqNum);
 
             if (lastEHSN >= extSeqNum)
             {
@@ -184,7 +186,7 @@ public class BandwidthEstimatorImpl
     }
 
     @Override
-    public void onRtcpPacketReceived(@NotNull RtcpPacket packet, Long receivedTime)
+    public void onRtcpPacketReceived(@NotNull RtcpPacket packet, long receivedTime)
     {
         if (packet instanceof RtcpSrPacket ||
                 packet instanceof RtcpRrPacket)
@@ -192,12 +194,12 @@ public class BandwidthEstimatorImpl
             if (packet instanceof RtcpSrPacket)
             {
                 RtcpSrPacket srPacket = (RtcpSrPacket)packet;
-                rtcpReportBlocksReceived(srPacket.getReportBlocks());
+                rtcpReportBlocksReceived(srPacket.getReportBlocks(), "sr");
             }
             else
             {
                 RtcpRrPacket rrPacket = (RtcpRrPacket)packet;
-                rtcpReportBlocksReceived(rrPacket.getReportBlocks());
+                rtcpReportBlocksReceived(rrPacket.getReportBlocks(), "rr");
             }
         }
     }
